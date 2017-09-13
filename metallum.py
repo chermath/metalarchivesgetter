@@ -135,7 +135,7 @@ class ma_search():
     def get_country_code(self, country_name):
         """Function to convert country name to country code"""
         import csv
-        doc = csv.reader(open('/home/matth/programowanie/python/ma/metallum/country_code.csv', "rb"), delimiter=",")
+        doc = csv.reader(open('/home/matth/programowanie/python/ma/metallum/country_code.csv', "rt", encoding="UTF-8"), delimiter=",")
         country_nr = "0"
         for line in doc:
             if str(country_name) in str(line[0]):
