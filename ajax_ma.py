@@ -1,8 +1,9 @@
 import json
-from urllib import urlopen, urlencode
+from urllib.request import urlopen
+from urllib.parse import urlencode
+import codecs
 
-
-class AjaxMa():
+class AjaxMa:
     def __init__(self):
         self.site_url = 'http://www.metal-archives.com/'
         self.site_url_without_html = 'www.metal-archives.com/bands/'
@@ -20,4 +21,6 @@ class AjaxMa():
         url = "".join([self.site_url, self.ajax_query_band, urlencode(params)])
         # debug url info
         # print ">>url=" + url
-        return json.load(urlopen(url))
+        normalizer = codecs.getreader("utf-8")
+        norm_result = normalizer(urlopen(url))
+        return json.load(norm_result)

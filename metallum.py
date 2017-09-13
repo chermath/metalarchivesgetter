@@ -1,18 +1,19 @@
-#!/usr/bin/env python
-import json
-import sys
+#!/usr/bin/env python3
 import argparse
-import re
-
-import urllib2
+import json
 import os
+import re
+from urllib.request import urlopen
+from urllib.parse import urlencode
 
+import sys
+# import urllib2
+from bs4 import BeautifulSoup
+# from jsonpipe import jsonpipe
+
+import ajax_ma
 import album
 import artist
-from bs4 import BeautifulSoup
-from urllib import urlopen, urlencode
-from jsonpipe import jsonpipe
-import ajax_ma
 import discography
 
 site_url = 'http://www.metal-archives.com/'
@@ -41,20 +42,6 @@ class ma_search():
         self.ma_album = album.Album()
         self.band_discography = discography.Discography()
 
-
-        # # band_genre_re
-        # def get_songs_data(band, song):
-        #     """Search on metal-archives for song coincidences"""
-        #     params = dict(
-        #         bandName=band,
-        #         # songTitle = song
-        #         releaseTitle=song
-        #     )
-        #     url = "".join([site_url, ajax_album, urlencode(params)])
-        #     print "url=" + url
-        #     return json.load(urlopen(url))['aaData']
-        #
-        #
     def fill_album(self, album_data):
         album_tmp = album.Album()
         if 'Full-length' in album_data['Type']:
@@ -71,7 +58,7 @@ class ma_search():
             bandId=self.ma_band.id,
             releaseTitle=album
         )
-        response = urllib2.urlopen('http://www.metal-archives.com/band/discography/id/' + self.ma_band.id + '/tab/all')
+        response = urlopen('http://www.metal-archives.com/band/discography/id/' + self.ma_band.id + '/tab/all')
         html = response.read()
         #     # tmp = json.load("http://www.metal-archives.com/band/discography/id/3070/tab/misc")
         #     # url = "".join([site_url, ajax_album, urlencode(params)])
@@ -79,7 +66,6 @@ class ma_search():
         table = soup.find("table")
         # table = html.find('table')
         return table
-
 
     def get_ma_album(self, album):
 
@@ -98,22 +84,24 @@ class ma_search():
                 # albums_data[albums['Name']] = album_data
                 # print album_data
                 # print albums.keys()
-                print "searched album: " + self.ma_album.year + " - " + self.ma_album.title
-                print "*******************************"
+                print
+                "searched album: " + self.ma_album.year + " - " + self.ma_album.title
+                print
+                "*******************************"
 
 
-        #print album_data
-        # for album in albums_data:
-        # print album['Name']
-        # for row in rows:
-        # print "url=" + row
-        # listing_dirs()
-        # url = site_url + ajax_query_album
-        # if 1 == json.load(urlopen(url))['iTotalRecords']:
-        #     url = "".join([site_url, ajax_query_album, urlencode(params)])
-        #     return json.load(urlopen(url))['aaData']
-        # else:
-        #     print "zonk"
+                # print album_data
+                # for album in albums_data:
+                # print album['Name']
+                # for row in rows:
+                # print "url=" + row
+                # listing_dirs()
+                # url = site_url + ajax_query_album
+                # if 1 == json.load(urlopen(url))['iTotalRecords']:
+                #     url = "".join([site_url, ajax_query_album, urlencode(params)])
+                #     return json.load(urlopen(url))['aaData']
+                # else:
+                #     print "zonk"
 
     # def listing_dirs():
     #     for dirname, dirnames, filenames in os.walk('/home/matth/storage/MP3/torrent'):
@@ -165,7 +153,7 @@ class ma_search():
             for bands in results['aaData']:
                 self.ma_band = artist.Band()
                 self.create_band(bands)
-                print self.ma_band.name + "[" + self.ma_band.country + ", " + self.ma_band.genre + "]" + " id=" + self.ma_band.id
+                print (self.ma_band.name + "[" + self.ma_band.country + ", " + self.ma_band.genre + "]" + " id=" + self.ma_band.id)
                 if self.ma_band.aka:
                     print("(" + self.ma_band.aka + ")")
 
@@ -205,7 +193,7 @@ class ma_search():
             # albums
             band_albums_re = re.sub('<.*?>', '', song[1])
             band_albums_song_name_re = song[3]
-            print band_name + " - " + band_albums_song_name_re + " [" + band_albums_re + "]"
+            print(band_name + " - " + band_albums_song_name_re + " [" + band_albums_re + "]")
             # band_albums_re = re.compile(r'\*">
             # band_albums_re = re.search('?=song[1])
             # print "\n" + albums_title
@@ -245,7 +233,8 @@ class ma_search():
             print("cann't find " + args.band)
         else:
             self.get_ma_album(args.album)
-        print "********************"
+        print("********************")
+
 
 if __name__ == '__main__':
     ma_searcher = ma_search()
