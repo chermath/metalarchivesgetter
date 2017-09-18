@@ -1,6 +1,7 @@
 import json
 from urllib.request import urlopen
 from urllib.parse import urlencode
+from bs4 import BeautifulSoup
 import codecs
 
 class AjaxMa:
@@ -24,3 +25,10 @@ class AjaxMa:
         normalizer = codecs.getreader("utf-8")
         norm_result = normalizer(urlopen(url))
         return json.load(norm_result)
+
+    def discography_ma_query(self, band_id):
+        response = urlopen('http://www.metal-archives.com/band/discography/id/' + band_id + '/tab/all')
+        html = response.read()
+        soup = BeautifulSoup(html, "lxml")
+        return soup.find("table")
+

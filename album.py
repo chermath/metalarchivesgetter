@@ -6,6 +6,7 @@ class Album():
         self.year = ''
         self.tracks = ''
         self.artist = artist.Band()
+        self.id = ''
 
 #    def __getattr__(self, item):
 #        self[item]
