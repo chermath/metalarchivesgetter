@@ -4,35 +4,14 @@ import json
 import os
 import re
 from urllib.request import urlopen
-from urllib.parse import urlencode
-
-import sys
-# import urllib2
-from bs4 import BeautifulSoup
-# from jsonpipe import jsonpipe
-
+# local imports
 import ajax_ma
 import album
 import artist
 import discography
 
 site_url = 'http://www.metal-archives.com/'
-site_url_without_html = 'www.metal-archives.com/bands/'
-ajax_song = 'search/ajax-advanced/searching/songs?'
-ajax_album = 'search/ajax-advanced/searching/albums?'
-ajax_band = 'search/ajax-advanced/searching/bands?'
-ajax_query_album = 'search/ajax-album-search/?query='
-ajax_query_band = 'search/ajax-band-search/?'
-lyrics_not_available = '(lyrics not available)'
-lyric_id_re = re.compile(r'id=.+[a-z]+.(?P<id>\d+)')
-band_name_re = ""
 tags_re = re.compile(r'<[^>]+>')
-# band_albums_re = re.compile(r'albums=.*\">(?P<albums>*</a>')
-band_albums_song_number_re = 0
-band_albums_song_name_re = ''
-band_albums_songs_total_numbers_re = 0
-# band_name = ''
-albums_data = dict()
 
 
 class ma_search():
@@ -67,7 +46,7 @@ class ma_search():
         return self.fill_album(dict(dataset))
 
     def compare_names(self, name1, name2):
-        return True if name1.lower() == name2.lower() else False
+        return True if str(name1).lower() == str(name2).lower() else False
 
     def get_ma_album(self, sought_album):
         disco = self.get_discography(self.ma_band.id)
@@ -77,7 +56,7 @@ class ma_search():
             # TODO get the album ID
             new_album = self.prepare_dataset(disco, row)
             self.band_discography.albums.append(new_album)
-            if self.compare_names(sought_album, new_album):
+            if self.compare_names(sought_album, new_album.title):
                 self.ma_album = new_album
                 print("searched album: " + self.ma_album.year + " - " + self.ma_album.title)
                 print("############################")
@@ -113,61 +92,28 @@ class ma_search():
     #                     print("band? " + substring)
     #             #print(os.path.join(dirname, subdirname))
     def create_band(self, data):
-        self.ma_band.name = re.sub('<.*?>', '', data[0]).replace("  ", " ")
-        # if band have aka title
-        if 'a.k.a.' in self.ma_band.name:
-            self.ma_band.aka = self.ma_band.name[self.ma_band.name.find("(") + 1:self.ma_band.name.find(")")].replace(
-                'a.k.a. ', '')
-            self.ma_band.name = self.ma_band.name[:self.ma_band.name.find("(") - 1]
-        # band_id = data[0].replace("<a href=\"" + site_url + "bands/", "")
-        band_id = re.findall('//(.*?)">*', data[0], re.DOTALL)
-        band_id = band_id[0].replace("bands/", "")
-        self.ma_band.id = re.sub('^.*?/.*?/', '', band_id)
-        self.ma_band.genre = data[1].replace(",", " - ").replace("/", " - ").replace("\\", " -  ").replace("  ", " ")
-        self.ma_band.country = self.get_country_code(data[2])
+        # self.ma_band = artist.Band()
+        self.ma_band = artist.Band().set_band_data(data)
 
-    def get_country_code(self, country_name):
-        """Function to convert country name to country code"""
-        import csv
-        doc = csv.reader(open('country_code.csv', "rt", encoding="UTF-8"), delimiter=",")
-        country_nr = "0"
-        for line in doc:
-            if str(country_name) in str(line[0]):
-                return line[1]
-                break
-        # if don't find country in file
-        return "xxx"
+    def one_band_result(self, raw_data):
+        return True if raw_data['iTotalDisplayRecords'] == 1 else False
 
     def get_ma_band(self, band):
+        # create an object
+        self.ma_band = artist.Band()
         results = self.ajax_ma.band_ma_query(band)
-        # any results ? so create empty band
-        # if results['iTotalDisplayRecords'] >=1:
-        #    self.ma_band = band.Band()
-        # if only one result (so we don't have to select anything
-        if results['iTotalDisplayRecords'] == 1:
-            for bands in results['aaData']:
-                self.ma_band = artist.Band()
-                self.create_band(bands)
-                print(
-                    self.ma_band.name + "[" + self.ma_band.country + ", " + self.ma_band.genre + "]" + " id=" + self.ma_band.id)
-                if self.ma_band.aka:
-                    print("(" + self.ma_band.aka + ")")
-
-                    # choosen_band = dict(
-                    #     id=band_id,
-                    #     name=band_name,
-                    #     country=band_country,
-                    #     genre=band_genre_re
-                    # )
-
-                    # TODO for more than one band with the same name, selector should by by id ;)
-                    # user should choose
-                    # if 1 == json.load(urlopen(url))['iTotalRecords']:
-                    #    return json.load(urlopen(url))['aaData']
-                    # if
-                    # global band_data
-                    # band_data = choosen_band
-                    # print(os.path.isdir("/home/matth/inspiracja/Zrobione/" + band_data.band_name[0][0]) + "/" +)
+        if self.one_band_result(results):
+            for band in results['aaData']:
+                self.create_band(band)
+                print(self.ma_band.name + "[" + self.ma_band.country + ", " + self.ma_band.genre + "]" + (" (a.k.a. " + self.ma_band.aka +")" if self.ma_band.aka else "") + " id=" + self.ma_band.id)
+        # TODO for more than one band with the same name, selector should by by id ;)
+        # user should choose
+        # if 1 == json.load(urlopen(url))['iTotalRecords']:
+        #    return json.load(urlopen(url))['aaData']
+        # if
+        # global band_data
+        # band_data = choosen_band
+        # print(os.path.isdir("/home/matth/inspiracja/Zrobione/" + band_data.band_name[0][0]) + "/" +)
 
     def get_lyrics_by_song_id(self, song_id):
         """Search on metal-archives for lyrics based on song_id"""

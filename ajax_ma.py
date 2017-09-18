@@ -21,7 +21,7 @@ class AjaxMa:
         )
         url = "".join([self.site_url, self.ajax_query_band, urlencode(params)])
         # debug url info
-        # print ">>url=" + url
+        # print(">>url=" + url)
         normalizer = codecs.getreader("utf-8")
         norm_result = normalizer(urlopen(url))
         return json.load(norm_result)
