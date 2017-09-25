@@ -1,12 +1,15 @@
 import artist
+
+def album_to_string(album):
+    return album.year + " - " + album.name + "[" + album.type + "]"
+
 class Album():
     def __init__(self):
-        self.title = ''
+        self.name = ''
         self.type = ''
         self.year = ''
         self.tracks = ''
         self.artist = artist.Band()
-        self.id = ''
 
 #    def __getattr__(self, item):
 #        self[item]
