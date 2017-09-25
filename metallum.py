@@ -143,8 +143,8 @@ class ma_search():
             self.get_ma_album(args.album)
         print("********************")
         print("output format=\n" +
-              self.ma_band.name + " [" + self.ma_band.country + ", " + self.ma_band.genre + "]/" +
-              self.ma_band.name + " - " + self.ma_album.year + " - " + self.ma_album.title)
+              self.ma_band.name + " [" + self.ma_band.country + ", " + self.ma_band.genre + "]" + (" (a.k.a. " + self.ma_band.aka +")" if self.ma_band.aka else "") +
+              "/" + self.ma_band.name + " - " + self.ma_album.year + " - " + self.ma_album.title)
 
 
 if __name__ == '__main__':
