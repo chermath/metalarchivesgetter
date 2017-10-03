@@ -13,6 +13,8 @@ class AjaxMa:
         self.ajax_band = 'search/ajax-advanced/searching/bands?'
         self.ajax_query_album = 'search/ajax-album-search/?query='
         self.ajax_query_band = 'search/ajax-band-search/?'
+        self.ajax_discography = 'http://www.metal-archives.com/band/discography/id/'
+        self.ajax_discography_p2 = '/tab/all'
 
     def band_ma_query(self, query):
         # create parameters to query
