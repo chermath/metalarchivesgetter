@@ -1,16 +1,12 @@
 #!/usr/bin/env python
-import json
+
 import sys
 import argparse
 import re
-
-import urllib3
-import urllib.request
 import os
 
 import album
 import artist
-from bs4 import BeautifulSoup
 import ajax_ma
 import discography
 
@@ -42,16 +38,14 @@ class MASearch():
             albums_founded = []
             albums_strings = []
             for album in self.band_discography.albums:
-                # weird, how it work and lower don't
+                # weird, how bellow work and lower don't
                 if album.name.lower().count(search_album.lower()) >= 1:
                 #if (album.name.lower() in search_album.lower()):
                     albums_founded.append(album)
                     albums_strings.append(album.album_to_string(albums_founded[-1]))
             choose = self.selector(albums_strings)
-            print("We choses " + albums_founded[choose].name)
-            #if album.name.lower() in search_album.lower():
-            #    self.ma_album = album
-            #    exit(0)
+            # print("We choses %s" % albums_founded[choose].name)
+            return albums_founded[choose]
 
     def create_ma_discography(self, album):
         disco = self.ajax_ma.discography_ma_query(self.ma_band.id)
@@ -83,24 +77,28 @@ class MASearch():
     #             #print(os.path.join(dirname, subdirname))
     def create_band(self, data):
         new_band = artist.Band()
-        new_band.name = re.sub('<.*?>', '', data[0]).replace("  ", " ")
+        new_band.name = self.get_band_name(data[0])
         # if band have aka title
-        if 'a.k.a.' in self.ma_band.name:
+        if 'a.k.a.' in new_band.name:
             new_band.aka = new_band.name[new_band.name.find("(") + 1:new_band.name.find(")")].replace(
                 'a.k.a. ', '')
             new_band.name = new_band.name[:new_band.name.find("(") - 1]
-        band_id = re.findall('//(.*?)">*', data[0], re.DOTALL)
-        band_id = band_id[0].replace("bands/", "")
-        new_band.id = self.get_band_id(band_id)
-        new_band.genre = self.get_genre(data)
+
+        new_band.id = self.get_band_id(data[0])
+        new_band.genre = self.get_genre(data[1])
         new_band.country = self.get_country_code(data[2])
         return new_band
 
-    def get_band_id(self, band_id):
+    def get_band_name(self, raw_data):
+        return re.sub('<.*?>', '', raw_data).replace("  ", " ")
+
+    def get_band_id(self, raw_data):
+        band_id = re.findall('//(.*?)">*', raw_data, re.DOTALL)
+        band_id = band_id[0].replace("bands/", "")
         return re.sub('^.*?/.*?/', '', band_id)
 
-    def get_genre(self, data):
-        return data[1].replace(",", " - ").replace("/", " - ").replace("\\", " -  ").replace("  ", " ")
+    def get_genre(self, raw_data):
+        return raw_data.replace(",", " - ").replace("/", " - ").replace("\\", " -  ").replace("  ", " ")
 
     def get_country_code(self, country_name):
         """Function to convert country name to country code"""
@@ -114,12 +112,13 @@ class MASearch():
 
     def get_ma_band(self, band):
         results = self.ajax_ma.band_ma_query(band)
-        # if only one result (so we don't have to select anything)
+        # if only one result (so we don't have to select anything) else run selector
         if results['iTotalDisplayRecords'] == 1:
             band = results['aaData'][0]
-            self.ma_band = artist.Band()
-            self.ma_band = self.create_band(band)
-            print(artist.band_to_string(self.ma_band))
+            new_band = artist.Band()
+            new_band = self.create_band(band)
+            print(artist.band_to_string(new_band))
+            return new_band
         elif results['iTotalDisplayRecords'] > 1:
             bands_founded = []
             bands_strings = []
@@ -127,16 +126,9 @@ class MASearch():
                 bands_founded.append(self.create_band(band))
                 bands_strings.append(artist.band_to_string(bands_founded[-1]))
             choose = self.selector(bands_strings)
-            print("We chose " + bands_strings[choose])
-
-            # TODO for more than one band with the same name, selector should by by id ;)
-            # user should choose
-            # if 1 == json.load(urlopen(url))['iTotalRecords']:
-            #    return json.load(urlopen(url))['aaData']
-            # if
-            # global band_data
-            # band_data = choosen_band
-            # print(os.path.isdir("/home/matth/inspiracja/Zrobione/" + band_data.band_name[0][0]) + "/" +)
+            # debug if choose select proper object
+            # print("We chose " + bands_strings[choose])
+            return bands_founded[choose]
 
     def selector(self, choose_list):
         import curses
@@ -170,20 +162,11 @@ class MASearch():
             # curses.KEY_DOWN 66 or KEY_RIGHT 67
             elif (c == 66 or c == 67) and option < len(choose_list) - 1:
                 option += 1
-
-        stdscr.addstr("You chose {0}".format(choose_list))
-        stdscr.getch()
+        # debug choosing
+        #stdscr.addstr("You chose {0}".format(choose_list))
+        #stdscr.getch()
+        stdscr.erase()
         return option
-
-    def find_band(self, band):
-        band_names = self.get_ma_band(band)
-        # if (band_names >= 1):
-        #    print "znaleziono wincyj zespolow"
-        # TODO wyswietlic i dac do wybrania ;)
-        # else:
-        #    print "git"
-        #    get_albums_artist
-        # return band_names
 
     def main(self):
         """Runs the program and handles command line options"""
@@ -191,16 +174,12 @@ class MASearch():
         parser.add_argument('band', type=str, help='The name of the band. Ex: "Vomigod"')
         parser.add_argument('album', type=str, help='The title of the song. Ex: "OralTrol"')
         args = parser.parse_args()
-        self.get_ma_band(args.band)
+        self.ma_band = self.get_ma_band(args.band)
         if not self.ma_band:
-            print("cann't find " + args.band)
+            print("can't find " + args.band)
         else:
             album_results = self.create_ma_discography(args.album)
             self.ma_album = self.get_ma_album(album_results, args.album)
-            #    # TODO do smthing with more results
-            #    print("Founded albums: %s" % album_results)
-            #    self.selector()
-            # curses.wrapper(self.character)
         print("********************")
 
 
