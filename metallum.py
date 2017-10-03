@@ -4,7 +4,8 @@ import sys
 import argparse
 import re
 
-import urllib2
+import urllib3
+import urllib.request
 import os
 
 import album
@@ -12,6 +13,7 @@ import artist
 from bs4 import BeautifulSoup
 import ajax_ma
 import discography
+
 
 class MASearch():
     def __init__(self):
@@ -31,33 +33,20 @@ class MASearch():
         album_tmp.type = album_type
         return album_tmp
 
-    def get_discography(self, band_id):
-        params = dict(
-            bandId=self.ma_band.id,
-            releaseTitle=album
-        )
-        response = urllib2.urlopen(ajax_ma.ajax_discography + self.ma_band.id + ajax_ma.ajax_discography_p2)
-        html = response.read()
-        soup = BeautifulSoup(html, "lxml")
-        table = soup.find("table")
-        return table
-
     def get_ma_album(self, number_of_results, search_album):
-        print ("czego szukam: " + search_album.lower())
-        if(number_of_results == 1):
+        if (number_of_results == 1):
             for album in self.band_discography.albums:
                 if album.name.lower() in search_album.lower():
                     return album
-        elif(number_of_results>1):
+        elif (number_of_results > 1):
+            albums_founded = []
+            albums_strings = []
             for album in self.band_discography.albums:
-                albums_founded = []
-                albums_strings = []
-                print ("jestem" + str(album.name.lower()) == str(search_album.lower()))
-                if album.name.lower() in search_album.lower():
-                    print("kurwa!!")
+                # weird, how it work and lower don't
+                if album.name.lower().count(search_album.lower()) >= 1:
+                #if (album.name.lower() in search_album.lower()):
                     albums_founded.append(album)
                     albums_strings.append(album.album_to_string(albums_founded[-1]))
-
             choose = self.selector(albums_strings)
             print("We chose " + albums_strings[choose])
             if album.name.lower() in search_album.lower():
@@ -65,28 +54,20 @@ class MASearch():
                 exit(0)
 
     def create_ma_discography(self, album):
-
-        disco = self.get_discography(self.ma_band.id)
-
+        disco = self.ajax_ma.discography_ma_query(self.ma_band.id)
         headings = [th.get_text() for th in disco.find("tr").find_all("th")]
         album_counter = 0
         for row in disco.find_all("tr")[1:]:
             dataset = zip(headings, (td.get_text() for td in row.find_all("td")))
             albums = dict(dataset)
-            # print(str(albums['Name']))
             new_album = self.fill_album(albums)
             self.band_discography.albums.append(new_album)
-            if album.lower() in new_album.name.lower():
-                album_counter += 1
-                # albums_data[albums['Name']] = album_data
-                # print album_data
-                # print albums.keys()
-                print("searched album: " + new_album.year + " - " + new_album.name)
-                print("*******************************")
+            # check if searched string match with album string
+            album_counter += 1 if album.lower() in new_album.name.lower() else False
         return album_counter
 
     # def listing_dirs():
-    #     for dirname, dirnames, filenames in os.walk('/home/matth/storage/MP3/torrent'):
+    #     for dirname, dirnames, filenames in os.walk(''):
     #         # print path to all subdirectories first.
     #         for subdirname in dirnames:
     #             if "[" in subdirname:
@@ -110,21 +91,26 @@ class MASearch():
             new_band.name = new_band.name[:new_band.name.find("(") - 1]
         band_id = re.findall('//(.*?)">*', data[0], re.DOTALL)
         band_id = band_id[0].replace("bands/", "")
-        new_band.id = re.sub('^.*?/.*?/', '', band_id)
-        new_band.genre = data[1].replace(",", " - ").replace("/", " - ").replace("\\", " -  ").replace("  ", " ")
+        new_band.id = self.get_band_id(band_id)
+        new_band.genre = self.get_genre(data)
         new_band.country = self.get_country_code(data[2])
         return new_band
+
+    def get_band_id(self, band_id):
+        return re.sub('^.*?/.*?/', '', band_id)
+
+    def get_genre(self, data):
+        return data[1].replace(",", " - ").replace("/", " - ").replace("\\", " -  ").replace("  ", " ")
 
     def get_country_code(self, country_name):
         """Function to convert country name to country code"""
         import csv
-        doc = csv.reader(open('extra/country_code.csv', "rb"), delimiter=",")
+        doc = csv.reader(open('extra/country_code.csv', "rt", encoding='utf8'), delimiter=",")
         for line in doc:
             if str(country_name) in str(line[0]):
                 return line[1]
                 break
         return "xxx"
-
 
     def get_ma_band(self, band):
         results = self.ajax_ma.band_ma_query(band)
@@ -140,19 +126,17 @@ class MASearch():
             for band in results['aaData']:
                 bands_founded.append(self.create_band(band))
                 bands_strings.append(artist.band_to_string(bands_founded[-1]))
-
             choose = self.selector(bands_strings)
             print("We chose " + bands_strings[choose])
 
-                    # TODO for more than one band with the same name, selector should by by id ;)
-                    # user should choose
-                    # if 1 == json.load(urlopen(url))['iTotalRecords']:
-                    #    return json.load(urlopen(url))['aaData']
-                    # if
-                    # global band_data
-                    # band_data = choosen_band
-                    # print(os.path.isdir("/home/matth/inspiracja/Zrobione/" + band_data.band_name[0][0]) + "/" +)
-
+            # TODO for more than one band with the same name, selector should by by id ;)
+            # user should choose
+            # if 1 == json.load(urlopen(url))['iTotalRecords']:
+            #    return json.load(urlopen(url))['aaData']
+            # if
+            # global band_data
+            # band_data = choosen_band
+            # print(os.path.isdir("/home/matth/inspiracja/Zrobione/" + band_data.band_name[0][0]) + "/" +)
 
     def selector(self, choose_list):
         import curses
@@ -169,8 +153,9 @@ class MASearch():
         option = 0  # the current option that is marked
         while c != 10:  # Enter in ascii
             stdscr.erase()
-            stdscr.addstr("What is your class?\n", curses.A_UNDERLINE)
-            stdscr.addstr("Pressed = " + str(c))
+            stdscr.addstr("Have more results with this name.\nCan you select proper?\n", curses.A_UNDERLINE)
+            # for debug pressed key's
+            # stdscr.addstr("Pressed = %s\n" % str(c))
             for i in range(len(choose_list)):
                 if i == option:
                     attr = attributes['highlighted']
@@ -189,7 +174,6 @@ class MASearch():
         stdscr.addstr("You chose {0}".format(choose_list))
         stdscr.getch()
         return option
-
 
     def find_band(self, band):
         band_names = self.get_ma_band(band)
@@ -216,7 +200,7 @@ class MASearch():
             #    # TODO do smthing with more results
             #    print("Founded albums: %s" % album_results)
             #    self.selector()
-                #curses.wrapper(self.character)
+            # curses.wrapper(self.character)
         print("********************")
 
 
