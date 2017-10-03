@@ -13,6 +13,8 @@ class AjaxMa:
         self.ajax_band = 'search/ajax-advanced/searching/bands?'
         self.ajax_query_album = 'search/ajax-album-search/?query='
         self.ajax_query_band = 'search/ajax-band-search/?'
+        self.ajax_discography = 'http://www.metal-archives.com/band/discography/id/'
+        self.ajax_discography_p2 = '/tab/all'
 
     def band_ma_query(self, query):
         # create parameters to query
@@ -27,7 +29,7 @@ class AjaxMa:
         return json.load(norm_result)
 
     def discography_ma_query(self, band_id):
-        response = urlopen('http://www.metal-archives.com/band/discography/id/' + band_id + '/tab/all')
+        response = urlopen(self.ajax_discography + band_id + self.ajax_discography_p2)
         html = response.read()
         soup = BeautifulSoup(html, "lxml")
         return soup.find("table")
