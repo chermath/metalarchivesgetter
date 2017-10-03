@@ -48,10 +48,10 @@ class MASearch():
                     albums_founded.append(album)
                     albums_strings.append(album.album_to_string(albums_founded[-1]))
             choose = self.selector(albums_strings)
-            print("We chose " + albums_strings[choose])
-            if album.name.lower() in search_album.lower():
-                self.ma_album = album
-                exit(0)
+            print("We choses " + albums_founded[choose].name)
+            #if album.name.lower() in search_album.lower():
+            #    self.ma_album = album
+            #    exit(0)
 
     def create_ma_discography(self, album):
         disco = self.ajax_ma.discography_ma_query(self.ma_band.id)
