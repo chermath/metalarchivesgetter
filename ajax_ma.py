@@ -29,7 +29,7 @@ class AjaxMa:
         return json.load(norm_result)
 
     def discography_ma_query(self, band_id):
-        response = urlopen('http://www.metal-archives.com/band/discography/id/' + band_id + '/tab/all')
+        response = urlopen(self.ajax_discography + band_id + self.ajax_discography_p2)
         html = response.read()
         soup = BeautifulSoup(html, "lxml")
         return soup.find("table")
